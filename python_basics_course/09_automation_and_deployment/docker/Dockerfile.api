@@ -1,0 +1,37 @@
+# 멀티스테이지 빌드를 사용하여 최종 이미지 크기 최소화
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# Poetry 설치 및 의존성 관리
+RUN pip install poetry
+COPY pyproject.toml poetry.lock ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-dev --no-interaction --no-ansi
+
+# 실행 단계
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 보안을 위한 비루트 사용자 생성
+RUN useradd -m -u 1000 appuser
+
+# 필요한 패키지만 복사
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY src/ .
+
+# 환경 변수 설정
+ENV PYTHONUNBUFFERED=1
+ENV MODULE_NAME=main
+ENV VARIABLE_NAME=app
+ENV PORT=8000
+
+# 보안을 위한 사용자 전환
+USER appuser
+
+# 헬스체크를 위한 포트 노출
+EXPOSE 8000
+
+# Gunicorn으로 서버 실행
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "main:app"]

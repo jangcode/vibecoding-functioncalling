@@ -1,0 +1,33 @@
+# TaskMaster 설정 파일
+tasks:
+  daily_report:
+    script: tasks/daily_report.py
+    schedule: "0 0 * * *"  # 매일 자정
+    enabled: true
+    retry:
+      max_attempts: 3
+      delay: 300  # 5분
+
+  data_cleanup:
+    script: tasks/data_cleanup.py
+    schedule: "0 1 * * 0"  # 매주 일요일 새벽 1시
+    enabled: true
+    conditions:
+      disk_space_available_gb: 10
+
+notifications:
+  email:
+    enabled: true
+    recipients:
+      - admin@example.com
+  slack:
+    enabled: true
+    webhook_url: ${SLACK_WEBHOOK_URL}
+
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+  logging:
+    level: INFO
+    file: /var/log/taskmaster.log

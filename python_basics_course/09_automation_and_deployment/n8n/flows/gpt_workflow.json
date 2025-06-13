@@ -1,0 +1,101 @@
+{
+  "name": "GPT Data Processing Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "/data/input",
+        "options": {
+          "filePattern": "*.csv"
+        }
+      },
+      "name": "Watch Files",
+      "type": "n8n-nodes-base.watchFiles",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "filePath": "={{ $json.path }}"
+      },
+      "name": "Read CSV",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "headerAuth",
+        "headerAuthDetails": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.OPENAI_API_KEY}}"
+        },
+        "requestMethod": "POST",
+        "bodyContent": "={\"model\":\"gpt-4\",\"messages\":[{\"role\":\"system\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"={{$json.text}}\"}]}"
+      },
+      "name": "GPT API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "file": "/data/output/results.json",
+        "options": {}
+      },
+      "name": "Save Results",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Watch Files": {
+      "main": [
+        [
+          {
+            "node": "Read CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CSV": {
+      "main": [
+        [
+          {
+            "node": "GPT API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT API": {
+      "main": [
+        [
+          {
+            "node": "Save Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
